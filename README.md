@@ -2,7 +2,7 @@
 
 Cute 3D-printed toys, forged with joy in Malaysia.
 
-Live site: https://<your-username>.github.io/joysmith-studio/ (after GitHub Pages setup)
+Live site: https://joysmithstudio.github.io/joysmith-studio/
 
 ## Run locally
 Just open `index.html` in a browser — no install, no build.
