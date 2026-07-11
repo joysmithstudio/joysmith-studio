@@ -443,6 +443,9 @@ sheetContent.addEventListener('click', e=>{
   const am=e.target.closest('[data-authmode]'); if(am){ openAuth(am.dataset.authmode); return; }
   const ag=e.target.closest('[data-authgo]'); if(ag){ doAuth(ag.dataset.authgo); return; }
   if(e.target.closest('[data-signout]')){ sb.auth.signOut(); closeSheet(); showToast('Signed out 👋'); return; }
+  if(e.target.closest('[data-profile-edit]')){ openProfileEdit(); return; }
+  if(e.target.closest('[data-profile-save]')){ saveProfileEdit(); return; }
+  if(e.target.closest('[data-acct-back]')){ openAccount(); return; }
   if(e.target.closest('[data-vapply]')){ applyVoucher(); return; }
   if(e.target.closest('[data-vremove]')){ voucher=null; openCart(); return; }
   const inc=e.target.closest('[data-inc]'); if(inc){ cart[inc.dataset.inc]++; updateBadge(); openCart(); return; }
@@ -461,12 +464,50 @@ function openAccount(){
     <div class="acct-box">
       <b>${u.user_metadata?.name || 'Member'}</b><br>${u.email}
       ${profile ? `<div class="muted">📦 ${profile.name||''} · ${profile.phone||''}<br>${profile.addr||''}<br>${profile.post||''} ${profile.city||''}, ${profile.state||''}</div>`
-                : `<div class="muted">Your delivery details save automatically after your first order — checkout will auto-fill next time. ✦</div>`}
+                : `<div class="muted">No delivery details saved yet — add them below so checkout fills itself in. ✦</div>`}
+    </div>
+    <div class="cta-row">
+      <button class="cta ghost" data-profile-edit>${profile ? 'Edit delivery details' : 'Add delivery details'}</button>
     </div>
     <div class="cta-row">
       <button class="cta ghost" data-signout>Sign out</button>
       <button class="cta dark" data-close>Done</button>
     </div>`);
+}
+/* edit delivery details from the account sheet */
+function openProfileEdit(){
+  const i = profile || {};
+  openSheet(`
+    <button class="close" data-close aria-label="Close">✕</button>
+    <h2>Delivery details</h2>
+    <div class="field"><label for="p-name">Full name</label><input id="p-name" autocomplete="name" value="${i.name||''}"></div>
+    <div class="field"><label for="p-phone">Phone (WhatsApp)</label><input id="p-phone" inputmode="tel" autocomplete="tel" placeholder="01X-XXXXXXX" value="${i.phone||''}"></div>
+    <div class="field"><label for="p-addr">Street address</label><textarea id="p-addr" rows="2" autocomplete="street-address" placeholder="Unit, street, taman…">${i.addr||''}</textarea></div>
+    <div class="two">
+      <div class="field"><label for="p-post">Postcode</label><input id="p-post" inputmode="numeric" autocomplete="postal-code" maxlength="5" value="${i.post||''}"></div>
+      <div class="field"><label for="p-city">City</label><input id="p-city" autocomplete="address-level2" value="${i.city||''}"></div>
+    </div>
+    <div class="field"><label for="p-state">State</label>
+      <select id="p-state">${MY_STATES.map(s=>`<option ${i.state===s?'selected':''}>${s}</option>`).join('')}</select>
+    </div>
+    <p class="form-err" id="pErr">Please fill in every field (postcode is 5 digits).</p>
+    <div class="cta-row">
+      <button class="cta ghost" data-acct-back>← Back</button>
+      <button class="cta dark" data-profile-save>Save</button>
+    </div>`);
+}
+async function saveProfileEdit(){
+  const v = id => $(id).value.trim();
+  const row = { name:v('p-name'), phone:v('p-phone'), addr:v('p-addr'), post:v('p-post'), city:v('p-city'), state:$('p-state').value };
+  const bad = !row.name || !row.phone || !row.addr || !/^\d{5}$/.test(row.post) || !row.city;
+  $('pErr').textContent = 'Please fill in every field (postcode is 5 digits).';
+  $('pErr').classList.toggle('show', bad);
+  if(bad) return;
+  const {error} = await sb.from('profiles').upsert({ id: session.user.id, ...row, updated_at: new Date().toISOString() });
+  if(error){ $('pErr').textContent = "Couldn't save — check your connection and try again."; $('pErr').classList.add('show'); return; }
+  await loadProfile();
+  showToast('Details saved ✅');
+  openAccount();
 }
 function openAuth(mode){
   const reg = mode === 'register';
@@ -517,9 +558,10 @@ async function doAuth(mode){
         return;
       }
       // save delivery details to the member's profile right away
-      await sb.from('profiles').upsert({ id: data.session.user.id, name, phone, addr, post, city, state, updated_at: new Date().toISOString() });
+      const {error: pErr} = await sb.from('profiles').upsert({ id: data.session.user.id, name, phone, addr, post, city, state, updated_at: new Date().toISOString() });
       await loadProfile();
-      closeSheet(); showToast('Welcome to JoySmith! 🎉');
+      closeSheet();
+      showToast(pErr ? 'Account created — add your address under My account' : 'Welcome to JoySmith! 🎉');
     }else{
       const {error} = await sb.auth.signInWithPassword({ email, password: pass });
       if(error) throw error;
