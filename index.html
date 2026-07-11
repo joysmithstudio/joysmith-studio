@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <script>
 /* ================================================================
@@ -43,6 +44,15 @@ const PRODUCTS = [
   { id:"flexi-betta",   name:"Flexi Betta Fish", series:"Flexi Series 01",  price:35, emoji:"🐠", tint:"#9CD93C", image:"", status:"soon", category:"Flexi Series", tags:["fish","betta","flexi","fidget","articulated"], desc:"Our first articulated flexi — a betta with flowing segmented fins that flop and wiggle. Original JoySmith design, coming soon." },
   { id:"flexi-dragon",  name:"Flexi Baby Dragon",series:"Flexi Series 01",  price:39, emoji:"🐲", tint:"#F9A826", image:"", status:"soon", category:"Flexi Series", tags:["dragon","flexi","fidget","fantasy","articulated"], desc:"The JoySmith mascot as a poseable flexi toy — segmented body, curled tail, big sparkly eyes. In development." },
 ];
+
+/* ---- Member & voucher system (Supabase) ----------------------
+   Create a free project at supabase.com, then paste here:
+   SUPABASE_URL  = Project Settings → Data API → Project URL
+   SUPABASE_KEY  = Project Settings → API Keys → anon / publishable key
+   Leave both "" to hide the member & voucher features entirely.
+   Vouchers are managed in the Supabase dashboard (vouchers table). */
+const SUPABASE_URL = "";
+const SUPABASE_KEY = "";
 
 const MY_STATES = ["Johor","Kedah","Kelantan","Melaka","Negeri Sembilan","Pahang","Perak","Perlis","Pulau Pinang","Sabah","Sarawak","Selangor","Terengganu","W.P. Kuala Lumpur","W.P. Labuan","W.P. Putrajaya"];
 const EAST_MY = ["Sabah","Sarawak","W.P. Labuan"];
@@ -203,6 +213,22 @@ const EAST_MY = ["Sabah","Sarawak","W.P. Labuan"];
   .toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,80px);background:var(--char);color:#fff;font-family:'Fredoka',sans-serif;font-weight:600;font-size:14.5px;padding:12px 22px;border-radius:100px;z-index:80;transition:transform .35s var(--ease);box-shadow:0 12px 26px rgba(46,46,46,.3)}
   .toast.show{transform:translate(-50%,0)}
 
+  /* ACCOUNT & VOUCHERS */
+  .member-dot{position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:var(--turq);border:2px solid var(--white);display:none}
+  .icon-btn.logged .member-dot{display:block}
+  .authtabs{display:flex;gap:8px;margin-top:10px}
+  .muted{color:var(--ink-soft);font-size:13.5px;margin-top:6px}
+  .acct-box{background:var(--white);border-radius:16px;padding:14px 16px;margin-top:12px;font-size:14.5px;line-height:1.5}
+  .vrow{display:flex;gap:8px;margin-top:12px}
+  .vrow input{flex:1;min-width:0;font:inherit;font-size:14px;padding:11px 14px;border-radius:100px;border:2px solid var(--line);background:var(--white);text-transform:uppercase}
+  .vrow input:focus{outline:none;border-color:var(--turq)}
+  .vrow .apply{flex:none;font-family:'Fredoka',sans-serif;font-weight:600;font-size:14px;padding:0 20px;border-radius:100px;background:var(--char);color:#fff}
+  .vmsg{font-size:12.5px;font-weight:700;margin-top:6px;display:none}
+  .vmsg.ok{display:block;color:var(--turq)}
+  .vmsg.bad{display:block;color:var(--coral)}
+  .trow.disc span:last-child{color:var(--turq);font-weight:800}
+  .vx{color:var(--coral);font-weight:800;font-size:12px;margin-left:4px}
+
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -218,6 +244,10 @@ const EAST_MY = ["Sabah","Sarawak","W.P. Labuan"];
       <a class="icon-btn" id="igLink" href="#" target="_blank" rel="noopener" aria-label="Instagram">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/></svg>
       </a>
+      <button class="icon-btn" id="acctBtn" aria-label="Member account">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.2 3.6-6.5 8-6.5s8 2.3 8 6.5"/></svg>
+        <span class="member-dot"></span>
+      </button>
       <button class="icon-btn" id="cartBtn" aria-label="Open cart">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 7h15l-1.7 9.2a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.7L5.2 4H2.5"/><circle cx="10" cy="21" r="1.4" fill="currentColor"/><circle cx="17" cy="21" r="1.4" fill="currentColor"/></svg>
         <span class="cart-count" id="cartCount">0</span>
@@ -275,6 +305,28 @@ const grid = $('grid'), chipsEl = $('chips'), q = $('q'),
 
 $('igLink').href = SHOP.instagram; $('figLink').href = SHOP.instagram;
 $('fspLink').href = SHOP.shopee; $('fwaLink').href = `https://wa.me/${SHOP.whatsapp}`;
+
+/* ---------- member system (Supabase) ---------- */
+const sb = (typeof supabase !== 'undefined' && SUPABASE_URL && SUPABASE_KEY)
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+let session = null;   // logged-in member session (null = guest)
+let profile = null;   // member's saved delivery details
+let voucher = null;   // applied voucher row from the vouchers table
+
+if(sb){
+  sb.auth.onAuthStateChange((_evt, s)=>{
+    session = s;
+    $('acctBtn').classList.toggle('logged', !!s);
+    if(s) loadProfile(); else profile = null;
+  });
+}else{
+  $('acctBtn').style.display = 'none';
+}
+async function loadProfile(){
+  const {data} = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+  profile = data;
+}
+$('acctBtn').addEventListener('click', ()=>{ if(sb) openAccount(); });
 
 let activeCat = 'All';
 const cats = ['All', ...new Set(PRODUCTS.map(p=>p.category))];
@@ -388,11 +440,100 @@ sheetContent.addEventListener('click', e=>{
   if(e.target.closest('[data-topay]')){ if(validateForm()) openPayment(); return; }
   if(e.target.closest('[data-back-info]')){ openCheckout(); return; }
   if(e.target.closest('[data-placeorder]')){ placeOrder(); return; }
+  const am=e.target.closest('[data-authmode]'); if(am){ openAuth(am.dataset.authmode); return; }
+  const ag=e.target.closest('[data-authgo]'); if(ag){ doAuth(ag.dataset.authgo); return; }
+  if(e.target.closest('[data-signout]')){ sb.auth.signOut(); closeSheet(); showToast('Signed out 👋'); return; }
+  if(e.target.closest('[data-vapply]')){ applyVoucher(); return; }
+  if(e.target.closest('[data-vremove]')){ voucher=null; openCart(); return; }
   const inc=e.target.closest('[data-inc]'); if(inc){ cart[inc.dataset.inc]++; updateBadge(); openCart(); return; }
   const dec=e.target.closest('[data-dec]');
   if(dec){ const id=dec.dataset.dec; cart[id]--; if(cart[id]<=0) delete cart[id]; updateBadge(); cartQty()?openCart():closeSheet(); return; }
 });
 $('cartBtn').addEventListener('click', openCart);
+
+/* account sheet: profile if signed in, else sign-in / register */
+function openAccount(){
+  if(!session){ openAuth('signin'); return; }
+  const u = session.user;
+  openSheet(`
+    <button class="close" data-close aria-label="Close">✕</button>
+    <h2>My account</h2>
+    <div class="acct-box">
+      <b>${u.user_metadata?.name || 'Member'}</b><br>${u.email}
+      ${profile ? `<div class="muted">📦 ${profile.name||''} · ${profile.phone||''}<br>${profile.addr||''}<br>${profile.post||''} ${profile.city||''}, ${profile.state||''}</div>`
+                : `<div class="muted">Your delivery details save automatically after your first order — checkout will auto-fill next time. ✦</div>`}
+    </div>
+    <div class="cta-row">
+      <button class="cta ghost" data-signout>Sign out</button>
+      <button class="cta dark" data-close>Done</button>
+    </div>`);
+}
+function openAuth(mode){
+  const reg = mode === 'register';
+  openSheet(`
+    <button class="close" data-close aria-label="Close">✕</button>
+    <h2>${reg ? 'Join JoySmith' : 'Member sign in'}</h2>
+    <p class="muted">Members get auto-filled checkout and member-only vouchers ✦</p>
+    <div class="authtabs">
+      <button class="chip ${reg?'':'on'}" data-authmode="signin">Sign in</button>
+      <button class="chip ${reg?'on':''}" data-authmode="register">Register</button>
+    </div>
+    ${reg ? `<div class="field"><label for="a-name">Your name</label><input id="a-name" autocomplete="name"></div>` : ''}
+    <div class="field"><label for="a-email">Email</label><input id="a-email" type="email" autocomplete="email"></div>
+    <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" autocomplete="${reg?'new-password':'current-password'}"></div>
+    <p class="form-err" id="authErr"></p>
+    <div class="cta-row"><button class="cta accent full" data-authgo="${mode}">${reg ? 'Create account' : 'Sign in'}</button></div>`);
+}
+async function doAuth(mode){
+  const email = $('a-email').value.trim(), pass = $('a-pass').value;
+  const err = $('authErr');
+  const fail = t => { err.textContent = t; err.classList.add('show'); };
+  if(!email || !pass) return fail('Please fill in email and password.');
+  err.classList.remove('show');
+  try{
+    if(mode === 'register'){
+      if(pass.length < 6) return fail('Password needs at least 6 characters.');
+      const name = $('a-name').value.trim();
+      const {data, error} = await sb.auth.signUp({ email, password: pass, options: { data: { name } } });
+      if(error) throw error;
+      if(!data.session){   // project has email confirmation turned on
+        openSheet(`<button class="close" data-close aria-label="Close">✕</button>
+          <div class="done"><div class="big">📮</div><h2>Check your inbox</h2>
+          <p>We sent a confirmation link to <b>${email}</b>.<br>Click it, then sign in here.</p></div>`);
+        return;
+      }
+      closeSheet(); showToast('Welcome to JoySmith! 🎉');
+    }else{
+      const {error} = await sb.auth.signInWithPassword({ email, password: pass });
+      if(error) throw error;
+      closeSheet(); showToast('Welcome back 👋');
+    }
+  }catch(ex){
+    fail(ex.message === 'Invalid login credentials' ? 'Wrong email or password.' : (ex.message || 'Something went wrong — try again.'));
+  }
+}
+
+/* vouchers */
+function discountFor(sub){
+  if(!voucher) return 0;
+  if(sub < Number(voucher.min_spend || 0)) return 0;
+  const v = Number(voucher.value);
+  const d = voucher.kind === 'percent' ? sub * v / 100 : v;
+  return Math.min(Math.round(d * 100) / 100, sub);
+}
+async function applyVoucher(){
+  const input = $('vcode'), msg = $('vmsg');
+  const say = (t, ok) => { msg.textContent = t; msg.className = 'vmsg ' + (ok ? 'ok' : 'bad'); };
+  const code = input.value.trim().toUpperCase();
+  if(!code) return say('Type a voucher code first.', false);
+  const {data: v, error} = await sb.from('vouchers').select('*').eq('code', code).maybeSingle();
+  if(error || !v) return say("Hmm, that code isn't valid or has expired.", false);
+  if(v.members_only && !session) return say('This voucher is members-only — sign in first.', false);
+  if(cartSubtotal() < Number(v.min_spend || 0)) return say(`This code needs a minimum spend of ${money(Number(v.min_spend))}.`, false);
+  voucher = v;
+  showToast('Voucher applied 🎟️');
+  openCart();
+}
 
 /* cart view */
 function openCart(){
@@ -414,14 +555,18 @@ function openCart(){
       </div>
     </div>`;
   }).join('');
-  const sub=cartSubtotal();
+  const sub=cartSubtotal(), disc=discountFor(sub);
   const freeGap = SHOP.freeShipAbove>0 ? SHOP.freeShipAbove-sub : -1;
+  const vbox = !sb ? '' : voucher ? '' :
+    `<div class="vrow"><input id="vcode" placeholder="Voucher code" aria-label="Voucher code"><button class="apply" data-vapply>Apply</button></div><p class="vmsg" id="vmsg"></p>`;
   openSheet(`
     <button class="close" data-close aria-label="Close">✕</button>
     <h2>Your cart</h2>
     ${lines}
+    ${vbox}
     <div class="totals">
       <div class="trow"><span>Subtotal</span><span>${money(sub)}</span></div>
+      ${voucher?`<div class="trow disc"><span>Voucher ${voucher.code} <button class="vx" data-vremove aria-label="Remove voucher">✕ remove</button></span><span>−${money(disc)}</span></div>`:''}
       <div class="trow"><span>Shipping</span><span>calculated at checkout</span></div>
       ${freeGap>0?`<div class="freeship">Add ${money(freeGap)} more for free shipping ✦</div>`:''}
       ${freeGap<=0&&SHOP.freeShipAbove>0?`<div class="freeship">You've unlocked free shipping 🎉</div>`:''}
@@ -431,7 +576,7 @@ function openCart(){
 
 /* checkout: delivery form */
 function openCheckout(){
-  const i = checkoutInfo||{};
+  const i = checkoutInfo || profile || {};   // members get saved details auto-filled
   openSheet(`
     <button class="close" data-close aria-label="Close">✕</button>
     <div class="steps"><span class="stepdot on"></span><span class="stepdot"></span><span class="stepdot"></span></div>
@@ -470,7 +615,7 @@ function validateForm(){
 
 /* payment step */
 function openPayment(){
-  const sub=cartSubtotal(), ship=shippingFor(checkoutInfo.state), total=sub+ship;
+  const sub=cartSubtotal(), disc=discountFor(sub), ship=shippingFor(checkoutInfo.state), total=sub-disc+ship;
   const qr = SHOP.tngQR
     ? `<img src="${SHOP.tngQR}" alt="TNG DuitNow QR code">`
     : `<span class="hint">Your TNG DuitNow QR appears here — add its filename to SHOP.tngQR at the top of this file.</span>`;
@@ -480,6 +625,7 @@ function openPayment(){
     <h2>Payment</h2>
     <div class="totals">
       <div class="trow"><span>Subtotal</span><span>${money(sub)}</span></div>
+      ${disc>0?`<div class="trow disc"><span>Voucher ${voucher.code}</span><span>−${money(disc)}</span></div>`:''}
       <div class="trow"><span>Shipping · ${checkoutInfo.state}</span><span>${ship===0?'FREE':money(ship)}</span></div>
       <div class="trow grand"><span>Total</span><span>${money(total)}</span></div>
     </div>
@@ -502,18 +648,19 @@ function openPayment(){
 
 /* place order -> WhatsApp handoff + success */
 function placeOrder(){
-  const sub=cartSubtotal(), ship=shippingFor(checkoutInfo.state), total=sub+ship;
+  const sub=cartSubtotal(), disc=discountFor(sub), ship=shippingFor(checkoutInfo.state), total=sub-disc+ship;
   const oid=`JS-${Date.now().toString().slice(-6)}${orderCounter++}`;
-  const items=Object.entries(cart).map(([id,n])=>{
-    const p=findP(id); return `• ${p.name} ×${n} — ${money(p.price*n)}`;
-  }).join('\n');
+  const cartItems=Object.entries(cart).map(([id,n])=>{
+    const p=findP(id); return {id, name:p.name, qty:n, price:p.price};
+  });
+  const items=cartItems.map(it=>`• ${it.name} ×${it.qty} — ${money(it.price*it.qty)}`).join('\n');
   const msg=
 `🧸 *NEW ORDER ${oid}* — ${SHOP.name}
 
 ${items}
 
 Subtotal: ${money(sub)}
-Shipping (${checkoutInfo.state}): ${ship===0?'FREE':money(ship)}
+${disc>0?`Voucher (${voucher.code}): −${money(disc)}\n`:''}Shipping (${checkoutInfo.state}): ${ship===0?'FREE':money(ship)}
 *Total: ${money(total)}*
 
 📦 *Deliver to*
@@ -525,7 +672,22 @@ ${checkoutInfo.note?`📝 Note: ${checkoutInfo.note}`:''}
 
 💙 Paid via TNG eWallet — receipt attached below:`;
   window.open(`https://wa.me/${SHOP.whatsapp}?text=${encodeURIComponent(msg)}`,'_blank');
-  cart={}; updateBadge();
+  if(sb){  // save the order (and member profile) in the background — WhatsApp handoff never waits on this
+    sb.from('orders').insert({
+      order_no:oid, user_id:session?.user.id||null,
+      customer_name:checkoutInfo.name, phone:checkoutInfo.phone, addr:checkoutInfo.addr,
+      post:checkoutInfo.post, city:checkoutInfo.city, state:checkoutInfo.state, note:checkoutInfo.note||null,
+      items:cartItems, subtotal:sub, shipping:ship,
+      voucher_code:voucher?.code||null, discount:disc, total
+    }).then(({error})=>{ if(error) console.warn('order save failed:', error.message); });
+    if(session){
+      sb.from('profiles').upsert({
+        id:session.user.id, name:checkoutInfo.name, phone:checkoutInfo.phone, addr:checkoutInfo.addr,
+        post:checkoutInfo.post, city:checkoutInfo.city, state:checkoutInfo.state, updated_at:new Date().toISOString()
+      }).then(()=>loadProfile());
+    }
+  }
+  cart={}; voucher=null; updateBadge();
   openSheet(`
     <button class="close" data-close aria-label="Close">✕</button>
     <div class="steps"><span class="stepdot on"></span><span class="stepdot on"></span><span class="stepdot on"></span></div>
