@@ -481,6 +481,16 @@ function openAuth(mode){
     ${reg ? `<div class="field"><label for="a-name">Your name</label><input id="a-name" autocomplete="name"></div>` : ''}
     <div class="field"><label for="a-email">Email</label><input id="a-email" type="email" autocomplete="email"></div>
     <div class="field"><label for="a-pass">Password</label><input id="a-pass" type="password" autocomplete="${reg?'new-password':'current-password'}"></div>
+    ${reg ? `
+    <div class="field"><label for="a-phone">Phone (WhatsApp)</label><input id="a-phone" inputmode="tel" autocomplete="tel" placeholder="01X-XXXXXXX"></div>
+    <div class="field"><label for="a-addr">Street address</label><textarea id="a-addr" rows="2" autocomplete="street-address" placeholder="Unit, street, taman…"></textarea></div>
+    <div class="two">
+      <div class="field"><label for="a-post">Postcode</label><input id="a-post" inputmode="numeric" autocomplete="postal-code" maxlength="5"></div>
+      <div class="field"><label for="a-city">City</label><input id="a-city" autocomplete="address-level2"></div>
+    </div>
+    <div class="field"><label for="a-state">State</label>
+      <select id="a-state">${MY_STATES.map(s=>`<option>${s}</option>`).join('')}</select>
+    </div>` : ''}
     <p class="form-err" id="authErr"></p>
     <div class="cta-row"><button class="cta accent full" data-authgo="${mode}">${reg ? 'Create account' : 'Sign in'}</button></div>`);
 }
@@ -493,15 +503,22 @@ async function doAuth(mode){
   try{
     if(mode === 'register'){
       if(pass.length < 6) return fail('Password needs at least 6 characters.');
-      const name = $('a-name').value.trim();
+      const name = $('a-name').value.trim(),  phone = $('a-phone').value.trim(),
+            addr = $('a-addr').value.trim(),  post  = $('a-post').value.trim(),
+            city = $('a-city').value.trim(),  state = $('a-state').value;
+      if(!name || !phone || !addr || !post || !city) return fail('Please fill in all your details.');
+      if(!/^\d{5}$/.test(post)) return fail('Postcode should be 5 digits.');
       const {data, error} = await sb.auth.signUp({ email, password: pass, options: { data: { name } } });
       if(error) throw error;
       if(!data.session){   // project has email confirmation turned on
         openSheet(`<button class="close" data-close aria-label="Close">✕</button>
           <div class="done"><div class="big">📮</div><h2>Check your inbox</h2>
-          <p>We sent a confirmation link to <b>${email}</b>.<br>Click it, then sign in here.</p></div>`);
+          <p>We sent a confirmation link to <b>${email}</b>.<br>Click it, then sign in here — your details will save on your first order.</p></div>`);
         return;
       }
+      // save delivery details to the member's profile right away
+      await sb.from('profiles').upsert({ id: data.session.user.id, name, phone, addr, post, city, state, updated_at: new Date().toISOString() });
+      await loadProfile();
       closeSheet(); showToast('Welcome to JoySmith! 🎉');
     }else{
       const {error} = await sb.auth.signInWithPassword({ email, password: pass });
