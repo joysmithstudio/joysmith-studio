@@ -1,0 +1,7 @@
+﻿# Never publish 3D model files (these ARE the products!)
+*.3mf
+*.stl
+*.step
+Sleeping series/
+# local assets not used by the site
+JoySmith Studio logo.png

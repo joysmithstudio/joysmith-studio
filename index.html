@@ -17,10 +17,10 @@
    HOW TO ADD A PRODUCT: copy one { ... } block in PRODUCTS,
    paste, edit values, save.
 
-   image:   "photo.jpg" uploaded next to this file, or "" for emoji
-   status:  "in-stock" | "preorder" | "soon"
-   tngQR:   filename of your TNG DuitNow QR screenshot (from the
-            TNG app: Receive Money → save QR image). "" hides it.
+   image:     "photo.jpg" uploaded next to this file, or "" for emoji
+   status:    "in-stock" | "preorder" | "soon"
+   duitnowQR: filename of your DuitNow QR image (from your bank app,
+              e.g. HLB Connect → save QR). "" hides it.
 ================================================================ */
 
 const SHOP = {
@@ -32,8 +32,8 @@ const SHOP = {
   shippingWM: 8,                        // shipping West Malaysia
   shippingEM: 12,                       // shipping East Malaysia (Sabah/Sarawak/Labuan)
   freeShipAbove: 100,                   // free shipping threshold (0 = never)
-  tngQR: "",                            // e.g. "tng-qr.jpg"
-  tngName: "YOW ZONG YOU",              // account name shown to buyer
+  duitnowQR: "",                        // e.g. "duitnow-qr.png"
+  duitnowName: "YOW ZONG YOU",          // account name shown to buyer
 };
 
 const PRODUCTS = [
@@ -63,7 +63,7 @@ const EAST_MY = ["Sabah","Sarawak","W.P. Labuan"];
   :root{
     --orange:#F9A826; --turq:#27C4B2; --lime:#9CD93C; --coral:#FF6B6B;
     --lav:#8E6BE8; --char:#2E2E2E; --cream:#FFF8EE; --white:#FFFFFF;
-    --ink-soft:#6B6357; --line:#F0E5D3; --tng:#1F4FD8;
+    --ink-soft:#6B6357; --line:#F0E5D3; --duitnow:#E6007E;
     --r:20px; --ease:cubic-bezier(.34,1.4,.4,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -151,7 +151,7 @@ const EAST_MY = ["Sabah","Sarawak","W.P. Labuan"];
   .cta:hover{transform:translateY(-2px)}
   .cta.dark{background:var(--char);color:#fff}
   .cta.accent{background:var(--coral);color:#fff;box-shadow:0 8px 18px -8px rgba(255,107,107,.55)}
-  .cta.tngpay{background:var(--tng);color:#fff;box-shadow:0 8px 18px -8px rgba(31,79,216,.5)}
+  .cta.dnpay{background:var(--duitnow);color:#fff;box-shadow:0 8px 18px -8px rgba(230,0,126,.5)}
   .cta.ghost{background:var(--white);border:2px solid var(--line)}
   .cta.off{background:var(--line);color:#B9AE9C;pointer-events:none}
   .cta.full{flex:none;width:100%}
@@ -186,8 +186,8 @@ const EAST_MY = ["Sabah","Sarawak","W.P. Labuan"];
   .stepdot{width:8px;height:8px;border-radius:50%;background:var(--line)}
   .stepdot.on{background:var(--turq);width:22px;border-radius:100px}
   .payhero{background:var(--white);border-radius:18px;padding:18px;text-align:center;margin-top:12px}
-  .tng-badge{display:inline-flex;align-items:center;gap:8px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:15px;color:var(--tng)}
-  .tng-badge .sq{width:26px;height:26px;border-radius:7px;background:var(--tng);color:#fff;display:grid;place-items:center;font-size:13px}
+  .dn-badge{display:inline-flex;align-items:center;gap:8px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:15px;color:var(--duitnow)}
+  .dn-badge .sq{width:26px;height:26px;border-radius:7px;background:var(--duitnow);color:#fff;display:grid;place-items:center;font-size:13px}
   .qrbox{width:200px;height:200px;margin:14px auto;border-radius:16px;background:var(--cream);border:2px dashed var(--line);display:grid;place-items:center;overflow:hidden}
   .qrbox img{width:100%;height:100%;object-fit:contain}
   .qrbox .hint{font-size:12.5px;color:#B9AE9C;padding:16px}
@@ -675,9 +675,9 @@ function validateForm(){
 /* payment step */
 function openPayment(){
   const sub=cartSubtotal(), disc=discountFor(sub), ship=shippingFor(checkoutInfo.state), total=sub-disc+ship;
-  const qr = SHOP.tngQR
-    ? `<img src="${SHOP.tngQR}" alt="TNG DuitNow QR code">`
-    : `<span class="hint">Your TNG DuitNow QR appears here — add its filename to SHOP.tngQR at the top of this file.</span>`;
+  const qr = SHOP.duitnowQR
+    ? `<img src="${SHOP.duitnowQR}" alt="DuitNow QR code">`
+    : `<span class="hint">Your DuitNow QR appears here — add its filename to SHOP.duitnowQR at the top of this file.</span>`;
   openSheet(`
     <button class="close" data-close aria-label="Close">✕</button>
     <div class="steps"><span class="stepdot on"></span><span class="stepdot on"></span><span class="stepdot"></span></div>
@@ -689,11 +689,11 @@ function openPayment(){
       <div class="trow grand"><span>Total</span><span>${money(total)}</span></div>
     </div>
     <div class="payhero">
-      <div class="tng-badge"><span class="sq">T</span> Touch 'n Go eWallet</div>
+      <div class="dn-badge"><span class="sq">D</span> DuitNow QR</div>
       <div class="qrbox">${qr}</div>
-      <div class="payname">Pay to: ${SHOP.tngName}</div>
+      <div class="payname">Pay to: ${SHOP.duitnowName}</div>
       <ol class="paysteps">
-        <li>Open your <b>TNG eWallet</b> app and tap <b>Scan</b></li>
+        <li>Open <b>any banking app or eWallet</b> (TNG, MAE, HLB Connect…) and tap <b>Scan / Pay</b></li>
         <li>Scan the QR and pay <b>${money(total)}</b></li>
         <li>Tap <b>Place order</b> below — your order + receipt go to our WhatsApp for instant confirmation</li>
       </ol>
@@ -701,7 +701,7 @@ function openPayment(){
     </div>
     <div class="cta-row">
       <button class="cta ghost" data-back-info>← Details</button>
-      <button class="cta tngpay" data-placeorder>Place order</button>
+      <button class="cta dnpay" data-placeorder>Place order</button>
     </div>`);
 }
 
@@ -729,7 +729,7 @@ ${checkoutInfo.addr}
 ${checkoutInfo.post} ${checkoutInfo.city}, ${checkoutInfo.state}
 ${checkoutInfo.note?`📝 Note: ${checkoutInfo.note}`:''}
 
-💙 Paid via TNG eWallet — receipt attached below:`;
+💗 Paid via DuitNow QR — receipt attached below:`;
   window.open(`https://wa.me/${SHOP.whatsapp}?text=${encodeURIComponent(msg)}`,'_blank');
   if(sb){  // save the order (and member profile) in the background — WhatsApp handoff never waits on this
     sb.from('orders').insert({
@@ -753,7 +753,7 @@ ${checkoutInfo.note?`📝 Note: ${checkoutInfo.note}`:''}
     <div class="done">
       <div class="big">🎉</div>
       <h2>Order sent!</h2>
-      <p>WhatsApp just opened with your order — hit <b>send</b> and attach your TNG receipt. We'll confirm right away.</p>
+      <p>WhatsApp just opened with your order — hit <b>send</b> and attach your payment receipt. We'll confirm right away.</p>
       <span class="orderid">Order ${oid}</span>
     </div>
     <div class="cta-row" style="margin-top:20px"><button class="cta dark full" data-close>Back to shop</button></div>`);

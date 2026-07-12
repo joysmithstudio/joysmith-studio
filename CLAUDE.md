@@ -8,7 +8,7 @@ It deploys to GitHub Pages; every commit to main auto-updates the live site.
 
 ## Architecture (single file, three zones)
 1. **Config block** (top of file, inside first <script>): `SHOP` object (WhatsApp
-   number, Instagram, Shopee, shipping rates, TNG QR filename), `PRODUCTS` array,
+   number, Instagram, Shopee, shipping rates, DuitNow QR filename), `PRODUCTS` array,
    and `SUPABASE_URL`/`SUPABASE_KEY` for the member/voucher backend.
    This is the ONLY section the owner edits day-to-day. Keep it simple and commented.
 2. **CSS** (single <style> block): design tokens as CSS variables.
@@ -30,9 +30,10 @@ It deploys to GitHub Pages; every commit to main auto-updates the live site.
   fulfilment; the orders table is the customer-info log.
 
 ## How ordering works (do not "fix" this into a fake gateway)
-Cart → 3-step checkout (delivery form → TNG DuitNow QR payment → place order).
+Cart → 3-step checkout (delivery form → DuitNow QR payment (HLB National QR,
+scannable by any MY bank app or eWallet) → place order).
 "Place order" opens WhatsApp (wa.me) with a formatted order message; the customer
-sends it with their TNG receipt. Payment verification is MANUAL by the owner.
+sends it with their payment receipt. Payment verification is MANUAL by the owner.
 There is intentionally NO automated payment gateway yet (Supabase only stores
 members/vouchers/order logs — it does not process payments).
 A future upgrade path is Billplz/senangPay once the business has SSM registration.
